@@ -1,7 +1,10 @@
 use crate::MouseEvent;
+// use serde::{Deserialize};
 use std::fs::File;
 use std::io::{BufReader};
-use csv::ReaderBuilder;
+use std::{thread, time::{Duration, Instant}};
+use rdev::{simulate, EventType, Button};
+
 
 #[derive(Debug)]
 pub struct Replayer {
@@ -9,41 +12,70 @@ pub struct Replayer {
 }
 
 impl Replayer {
-    pub fn new() -> Self {
-        Self {
-            events: Vec::new(),
-        }
-    }
-
-    pub fn load_from_json(&mut self, filename: &str) {
-        let file = File::open(filename).expect("Could not open JSON file");
+    pub fn new_from_json(path: &str) -> Self {
+        let file = File::open(path).expect("Failed to open file");
         let reader = BufReader::new(file);
-
-        self.events = serde_json::from_reader(reader).expect("Could not parse JSON file");
-        println!("Loaded {} events from JSON", self.events.len());
+        let events: Vec<MouseEvent> = serde_json::from_reader(reader).expect("Failed to parse JSON");
+        Self { events }
     }
 
-    pub fn load_from_csv(&mut self, filename: &str) {
-        let file = File::open(filename).expect("Could not open CSV file");
-        let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
-
+    pub fn new_from_csv(path: &str) -> Self {
+        let mut rdr = csv::Reader::from_path(path).expect("Failed to open file");
         let mut events = Vec::new();
-        for result in rdr.records() {
-            let record = result.expect("Could not read CSV record");
-            let x: i32 = record[0].parse().expect("Invalid x");
-            let y: i32 = record[1].parse().expect("Invalid y");
-            let button = if &record[2] == "None" {None} else { Some(record[2].to_string()) };
-            let time:f64 = record[3].parse().expect("Invalid time");
-
-            events.push(MouseEvent { x, y, button, time });
+        for result in rdr.deserialize() {
+            let record: MouseEvent = result.expect("Failed to parse CSV");
+            events.push(record);
         }
-        self.events = events;
-        println!("Loaded {} events from CSV", self.events.len());
+        Self { events }
     }
 
     pub fn replay(&self) {
+        if self.events.is_empty() {
+            println!("No events to replay!");
+            return;
+        }
+        let first_ts = self.events.first().map(|e| e.time).unwrap_or(0.0);
+
+        // 1️⃣ Mark the start of replay
+        let start = Instant::now();
+        println!("Starting {:?}", start);
         for event in &self.events {
-            println!("{:?}", event);
+            // Compute normalized elapsed time since the very first event:
+            let normalized = event.time - first_ts;
+            // 2️⃣ Compute the absolute target time for this event
+            let target = start + Duration::from_secs_f64(normalized);
+
+            // 3️⃣ Sleep until that target (or skip if we're already late)
+            let now = Instant::now();
+            if now < target {
+                thread::sleep(target - now);
+            }
+
+            // 4️⃣ Simulate the mouse move
+            if let Err(e) = simulate(&EventType::MouseMove {
+                x: event.x as f64,
+                y: event.y as f64,
+            }) {
+                eprintln!("Move failed: {:?}", e);
+            }
+
+            // 5️⃣ If there’s a click, simulate press & release with a tiny gap
+            if let Some(btn_str) = &event.button {
+                let btn = match btn_str.as_str() {
+                    "Left"   => Button::Left,
+                    "Right"  => Button::Right,
+                    "Middle" => Button::Middle,
+                    _        => continue,
+                };
+                if let Err(e) = simulate(&EventType::ButtonPress(btn)) {
+                    eprintln!("Press failed: {:?}", e);
+                }
+                // tiny gap to ensure OS registers the click
+                thread::sleep(Duration::from_millis(5));
+                if let Err(e) = simulate(&EventType::ButtonRelease(btn)) {
+                    eprintln!("Release failed: {:?}", e);
+                }
+            }
         }
     }
 }

@@ -68,8 +68,8 @@ fn main() {
                             // Was tracking — now stopping.
                             println!("Stopping tracking and saving...");
 
-                            tracker.save_as_csv("logs/mouse_events.csv");
-                            // tracker.save_as_json("logs/mouse_events.json");
+                            // tracker.save_as_csv("logs/mouse_events.csv");
+                            tracker.save_as_json("logs/mouse_events.json");
 
                             // Reset tracker for next session if you want:
                             *tracker = Tracker::new();
@@ -82,15 +82,18 @@ fn main() {
                         }
                     }
                     Key::Space => {
-                        println!("Replaying saved events...");
-
-                        let mut replayer = Replayer::new();
-
+                        if *tracking {
+                            println!("Exiting tracking..");
+                            // tracker.save_as_csv("logs/mouse_events.csv");
+                            tracker.save_as_json("logs/mouse_events.json");
+                            // Reset tracker for next session if you want:
+                            *tracker = Tracker::new();
+                            *tracking = false;
+                        }
+                        println!("Replaying saved events...");    
+                        // let replayer = Replayer::new_from_csv("logs/mouse_events.csv");
+                        let replayer = Replayer::new_from_json("logs/mouse_events.json");
                         // Load from JSON or CSV — your choice
-                        // replayer.load_from_json("logs/mouse_events.json");
-                        // OR:
-                        replayer.load_from_csv("logs/mouse_events.csv");
-
                         replayer.replay();
                         println!("Replaying stopped. Press K to start again, or Space to replay.");
                     }
@@ -99,8 +102,8 @@ fn main() {
 
                         // Optional final save if you want to catch any last tracking session:
                         if *tracking {
-                            tracker.save_as_csv("logs/mouse_events.csv");
-                            // tracker.save_as_json("logs/mouse_events.json");
+                            // tracker.save_as_csv("logs/mouse_events.csv");
+                            tracker.save_as_json("logs/mouse_events.json");
                             println!("Final session saved before exit.");
                         }
 

@@ -9,7 +9,7 @@ pub struct Tracker {
 
 impl Tracker {
     pub fn new() -> Self {
-        Tracker {
+        Self {
             events: Vec::new(),
         }
     }
