@@ -38,4 +38,10 @@ impl Tracker {
 
         println!("Events saved to {}", filename);
     }
+
+    pub fn save_as_bin(&self, filename: &str) {
+        let file = File::create(filename).expect("Failed to create file");
+        let writer = BufWriter::new(file);
+        bincode::serialize_into(writer, &self.events).expect("Failed to serialize");
+    }
 }

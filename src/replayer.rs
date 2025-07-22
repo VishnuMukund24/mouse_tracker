@@ -29,6 +29,13 @@ impl Replayer {
         Self { events }
     }
 
+    pub fn new_from_bin(path: &str) -> Self {
+        let file = File::open(path).expect("Failed to open binary file");
+        let reader = BufReader::new(file);
+        let events: Vec<MouseEvent> = bincode::deserialize_from(reader).expect("Failed to deserialize");
+        Self { events }
+    }
+
     pub fn replay(&self) {
         if self.events.is_empty() {
             println!("No events to replay!");

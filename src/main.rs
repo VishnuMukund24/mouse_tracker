@@ -69,7 +69,8 @@ fn main() {
                             println!("Stopping tracking and saving...");
 
                             // tracker.save_as_csv("logs/mouse_events.csv");
-                            tracker.save_as_json("logs/mouse_events.json");
+                            // tracker.save_as_json("logs/mouse_events.json");
+                            tracker.save_as_bin("logs/mouse_events.bin");
 
                             // Reset tracker for next session if you want:
                             *tracker = Tracker::new();
@@ -85,14 +86,16 @@ fn main() {
                         if *tracking {
                             println!("Exiting tracking..");
                             // tracker.save_as_csv("logs/mouse_events.csv");
-                            tracker.save_as_json("logs/mouse_events.json");
+                            // tracker.save_as_json("logs/mouse_events.json");
+                            tracker.save_as_bin("logs/mouse_events.bin");
                             // Reset tracker for next session if you want:
                             *tracker = Tracker::new();
                             *tracking = false;
                         }
                         println!("Replaying saved events...");    
                         // let replayer = Replayer::new_from_csv("logs/mouse_events.csv");
-                        let replayer = Replayer::new_from_json("logs/mouse_events.json");
+                        // let replayer = Replayer::new_from_json("logs/mouse_events.json");
+                        let replayer = Replayer::new_from_bin("logs/mouse_events.bin");
                         // Load from JSON or CSV — your choice
                         replayer.replay();
                         println!("Replaying stopped. Press K to start again, or Space to replay.");
